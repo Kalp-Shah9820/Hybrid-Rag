@@ -1,0 +1,47 @@
+# Core
+langchain>=0.2.0
+langchain-community>=0.2.0
+langchain-openai>=0.1.0
+langgraph>=0.1.0
+openai>=1.30.0
+google-genai>=1.0.0
+
+
+# Embeddings & Re-ranking
+sentence-transformers>=2.7.0
+torch>=2.0.0
+
+# Database
+psycopg2-binary>=2.9.9
+pgvector>=0.3.0
+chromadb>=0.5.0
+sqlalchemy>=2.0.0
+asyncpg>=0.29.0
+
+# Data Processing
+pandas>=2.2.0
+datasets>=2.19.0
+tiktoken>=0.7.0
+
+# API & UI
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
+streamlit>=1.35.0
+
+# LLM & Platforms
+cohere>=5.5.0
+langchain-cohere>=0.1.5
+
+# Configuration
+pydantic>=2.7.0
+pydantic-settings>=2.3.0
+python-dotenv>=1.0.0
+pyyaml>=6.0.0
+
+# Evaluation
+ragas>=0.1.10
+
+# Utilities
+rich>=13.7.0
+loguru>=0.7.0
+httpx>=0.27.0
