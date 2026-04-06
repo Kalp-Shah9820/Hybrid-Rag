@@ -1,58 +1,126 @@
----
-description: how to run the RAG Stock Market system
----
+# Run System
 
-Follow these steps to launch the system and see the results.
+## Quick Start
 
-### 1. Environment Preparation
-Ensure your `.env` file is ready with the required API keys.
-// turbo
-1. Create a virtual environment and activate it:
-   ```powershell
-   python -m venv venv
-   .\venv\Scripts\Activate
-   ```
-2. Install the necessary dependencies:
-   ```powershell
-   python -m pip install -r requirements.txt
-   ```
-3. Optionally verify which Gemini models your API key can access:
-   ```powershell
-   python -m src.list_models
-   ```
+### 1. Create and activate a virtual environment
 
-### 2. Data Ingestion
-This step builds your local **ChromaDB** and **BM25** indices.
-// turbo
-4. Run the ingestion script:
-   ```powershell
-   python -m scripts.ingest
-   ```
-   *Expect: A `data/` folder to be created containing `chroma_db` and `bm25_index.pkl`.*
+```powershell
+python -m venv venv
+.\venv\Scripts\Activate
+```
 
-### 3. Launching the Backend API
-Start the FastAPI server that powers the LangGraph agent.
-// turbo-all
-5. In a **new** terminal (keep venv active):
-   ```powershell
-   python -m uvicorn api.main:app --reload
-   ```
-   *Expect: API running at `http://localhost:8000`.*
+### 2. Install dependencies
 
-### 4. Launching the Frontend UI
-Start the Streamlit interface to interact with the RAG system.
-// turbo-all
-6. In another **new** terminal (keep venv active):
-   ```powershell
-   python -m streamlit run ui/app.py
-   ```
-   *Expect: Your browser should open to `http://localhost:8501`. If not, click the link in the terminal.*
+```powershell
+python -m pip install -r requirements.txt
+```
 
-### 5. Running Evaluations (Optional)
-Evaluate the performance using the Ragas metrics.
-// turbo
-7. Run the evaluation script:
-   ```powershell
-   python -m src.evaluation
-   ```
-   *Expect: A `data/eval_results.json` file with performance scores.*
+### 3. Configure environment variables
+
+Copy the example file:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Set these values in `.env`:
+
+```env
+GEMINI_API_KEY=your_key_here
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_NAME=rag_stockmarket
+DATABASE_USER=rag_user
+DATABASE_PASSWORD=rag_password
+DATABASE_SSLMODE=prefer
+```
+
+## Start Infrastructure
+
+Start PostgreSQL with `pgvector`:
+
+```powershell
+docker compose up -d postgres
+```
+
+## Load Data
+
+Choose one path.
+
+### Option A: Fresh ingestion
+
+```powershell
+python -m scripts.ingest
+```
+
+Use this when you want to build the PostgreSQL index from the dataset.
+
+### Option B: Migrate existing Chroma data
+
+```powershell
+python -m scripts.migrate_chroma_to_postgres
+```
+
+Use this when you already have embeddings stored in `data/chroma_db`.
+
+## Run the Backend
+
+```powershell
+python -m uvicorn api.main:app --reload
+```
+
+API endpoints:
+- `http://localhost:8000/health`
+- `http://localhost:8000/stats`
+- `http://localhost:8000/ask`
+
+## Run the Frontend
+
+Open a second terminal and activate the same environment:
+
+```powershell
+.\venv\Scripts\Activate
+python -m streamlit run ui/app.py
+```
+
+UI URL:
+- `http://localhost:8501`
+
+## Full Docker Flow
+
+If you want PostgreSQL, API, and UI together:
+
+```powershell
+docker compose up -d
+```
+
+## Sanity Checks
+
+After startup:
+- open `http://localhost:8000/health`
+- open `http://localhost:8000/stats`
+- ask a few queries in the UI
+
+Good test queries:
+- `How did Tesla stock perform recently?`
+- `What impact did the Fed rate decision have?`
+- `What are analysts predicting for tech stocks?`
+
+## Useful Commands
+
+```powershell
+python -m src.list_models
+python -m scripts.ingest
+python -m scripts.migrate_chroma_to_postgres
+python -m uvicorn api.main:app --reload
+python -m streamlit run ui/app.py
+python -m src.evaluation
+docker compose up -d postgres
+docker compose up -d
+```
+
+## Notes
+
+- The current system uses PostgreSQL + `pgvector` for semantic retrieval.
+- Keyword retrieval now uses PostgreSQL full-text search, not a separate BM25 file.
+- If PostgreSQL already has data, ingestion will skip reloading until you clear the table.

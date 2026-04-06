@@ -164,7 +164,7 @@ with st.sidebar:
     st.markdown("---")
     st.markdown(
         "<p style='text-align: center; color: #606070; font-size: 0.8rem;'>"
-        "Built with LangGraph • ChromaDB • BM25 • FastAPI</p>",
+        "Built with LangGraph • PostgreSQL • pgvector • FastAPI</p>",
 
         unsafe_allow_html=True,
     )

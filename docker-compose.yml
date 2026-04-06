@@ -5,11 +5,11 @@ services:
     image: ankane/pgvector:latest
     container_name: rag_postgres
     environment:
-      POSTGRES_DB: ${DATABASE_NAME:-rag_stockmarket}
-      POSTGRES_USER: ${DATABASE_USER:-rag_user}
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-rag_password}
+      POSTGRES_DB: ${DATABASE_NAME:-rag_news}
+      POSTGRES_USER: ${DATABASE_USER:-postgres}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-Kalp@9820}
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     restart: unless-stopped
