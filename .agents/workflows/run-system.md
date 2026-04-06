@@ -47,21 +47,13 @@ docker compose up -d postgres
 
 Choose one path.
 
-### Option A: Fresh ingestion
+### Fresh ingestion
 
 ```powershell
 python -m scripts.ingest
 ```
 
 Use this when you want to build the PostgreSQL index from the dataset.
-
-### Option B: Migrate existing Chroma data
-
-```powershell
-python -m scripts.migrate_chroma_to_postgres
-```
-
-Use this when you already have embeddings stored in `data/chroma_db`.
 
 ## Run the Backend
 
@@ -111,7 +103,6 @@ Good test queries:
 ```powershell
 python -m src.list_models
 python -m scripts.ingest
-python -m scripts.migrate_chroma_to_postgres
 python -m uvicorn api.main:app --reload
 python -m streamlit run ui/app.py
 python -m src.evaluation
