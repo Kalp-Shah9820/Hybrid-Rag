@@ -89,18 +89,26 @@ def rewrite_query(state: RAGState) -> RAGState:
     query = state["original_query"]
     retry = state.get("retry_count", 0)
 
-    # On first pass, try a light rewrite; on retries, rephrase more aggressively
-    if retry == 0:
+    # Check if it's a vague follow-up like "name them"
+    if len(query.split()) <= 3 and not any(word in query.lower() for word in ["stock", "company", "ticker", "price", "market"]):
+        # Assume it refers to stocks or companies from previous context
+        prompt = (
+            "The user asked a vague follow-up question like 'name them' or 'what are they'. "
+            "Based on typical stock market conversations, they likely want specific stock names, tickers, or company details. "
+            "Rewrite the query to explicitly ask for stock names, tickers, or relevant entities. "
+            "Return ONLY the rewritten query."
+        )
+    elif retry == 0:
         prompt = (
             "Rewrite the following user query to improve search retrieval for "
-            "a stock market news database. Keep it concise. Return ONLY the "
+            "a stock market news database. Make it more specific and entity-focused. Return ONLY the "
             "rewritten query, nothing else."
         )
     else:
         prompt = (
             "The previous search did not find relevant results. Aggressively "
             "rephrase this query using different keywords, synonyms, and "
-            "broader terms related to stock market and finance. Return ONLY "
+            "broader terms related to stock market and finance. Focus on entities like company names and tickers. Return ONLY "
             "the rewritten query."
         )
 

@@ -7,21 +7,21 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import List
 
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_cohere import CohereEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
+# from langchain_cohere import CohereEmbeddings
 from loguru import logger
 
 from src.config import settings
 
 
 @lru_cache(maxsize=1)
-def get_embeddings() -> HuggingFaceEmbeddings | CohereEmbeddings:
+def get_embeddings() -> HuggingFaceEmbeddings:
     """Return a singleton embedding model instance."""
     cfg = settings.embedding
     
-    if "cohere" in cfg.model_name.lower():
-        logger.info(f"Loading Cohere embedding model: {cfg.model_name}")
-        return CohereEmbeddings(model=cfg.model_name)
+    # if "cohere" in cfg.model_name.lower():
+    #     logger.info(f"Loading Cohere embedding model: {cfg.model_name}")
+    #     return CohereEmbeddings(model=cfg.model_name)
     
     logger.info(f"Loading embedding model: {cfg.model_name} (device={cfg.device})")
     return HuggingFaceEmbeddings(

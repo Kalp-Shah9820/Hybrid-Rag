@@ -39,13 +39,15 @@ embedding:
 
 # ---------- Chunking ----------
 chunking:
-  chunk_size: 700
-  chunk_overlap: 100
+  chunk_size: 300
+  chunk_overlap: 50
   separators:
     - "\n\n"
     - "\n"
     - ". "
     - " "
+    - ", "
+    - "; "
 
 # ---------- Retrieval ----------
 retrieval:

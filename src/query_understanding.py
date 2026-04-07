@@ -43,6 +43,23 @@ TICKER_ALIASES = {
 }
 
 
+def _extract_entities(query: str) -> List[str]:
+    """Extract potential stock tickers and company names."""
+    entities = []
+    # Extract uppercase tickers like AAPL, TSLA
+    ticker_pattern = r'\b[A-Z]{2,5}\b'
+    tickers = re.findall(ticker_pattern, query)
+    entities.extend(tickers)
+    
+    # Extract known aliases
+    words = query.lower().split()
+    for word in words:
+        if word in TICKER_ALIASES:
+            entities.append(TICKER_ALIASES[word])
+    
+    return list(set(entities))  # Remove duplicates
+
+
 @dataclass
 class QueryBundle:
     original_query: str
@@ -51,6 +68,7 @@ class QueryBundle:
     keyword_query: str
     tokens: List[str]
     expanded_terms: List[str]
+    entities: List[str]  # Extracted entities like stock names, tickers
 
 
 def _normalize_whitespace(text: str) -> str:
@@ -116,6 +134,8 @@ def build_query_bundle(query: str) -> QueryBundle:
 
     keyword_query = " ".join(keyword_terms) if keyword_terms else cleaned
 
+    entities = _extract_entities(query)
+
     return QueryBundle(
         original_query=query,
         cleaned_query=cleaned,
@@ -123,4 +143,5 @@ def build_query_bundle(query: str) -> QueryBundle:
         keyword_query=keyword_query,
         tokens=tokens,
         expanded_terms=expanded_terms,
+        entities=entities,
     )

@@ -79,8 +79,10 @@ def generate_answer(
         f"Question: {query}\n\n"
         f"Instructions:\n"
         f"- Answer using ONLY the information in the context above.\n"
+        f"- If the question asks for specific entities like stock names, tickers, or lists, extract and list them explicitly.\n"
+        f"- Be specific and concrete; avoid vague summaries.\n"
         f"- Cite every claim using [Source N] notation.\n"
-        f"- If you cannot answer from the context, say so explicitly.\n"
+        f"- If you cannot answer from the context, try to provide partial information or explain what's available.\n"
     )
 
     selected_model = resolve_generation_model()

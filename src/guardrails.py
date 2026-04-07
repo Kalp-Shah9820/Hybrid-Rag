@@ -52,7 +52,7 @@ def check_query_safety(query: str) -> Tuple[bool, str]:
 def check_topic_relevance(query: str) -> Tuple[bool, str]:
     """
     Use a lightweight LLM call to determine if the query is
-    about finance/stock market topics.
+    about finance/stock market topics. Be permissive.
     """
     cfg = settings.guardrails
     allowed = ", ".join(cfg.allowed_topics)
@@ -62,15 +62,15 @@ def check_topic_relevance(query: str) -> Tuple[bool, str]:
         system_instruction=(
             "You are a topic classifier. Determine if the user's query is "
             f"related to any of these topics: {allowed}. "
-            "Respond with exactly 'YES' or 'NO'."
+            "Respond with exactly 'YES' or 'NO'. If unsure, say 'YES'."
         ),
         temperature=0.0,
         max_output_tokens=10,
         thinking_budget=0,
     ).strip().upper()
 
-    if "YES" in decision:
-        return True, "Topic is relevant"
+    if "YES" in decision or "UNSURE" in decision:
+        return True, "Topic is relevant or borderline"
     else:
         return False, (
             "Your question doesn't appear to be about stock market or finance. "

@@ -51,6 +51,11 @@ def retrieve(query: str, source_filter: Optional[str] = None) -> List[RetrievedC
     semantic_query = query_bundle.semantic_query or query_bundle.cleaned_query or query
     query_embedding = embed_query(semantic_query)
     keyword_query = query_bundle.keyword_query or query_bundle.cleaned_query or query
+    
+    # Boost keyword query with entities
+    if query_bundle.entities:
+        entity_terms = " ".join(query_bundle.entities)
+        keyword_query += " " + entity_terms
 
     rows = hybrid_search(
         query_embedding=query_embedding,
@@ -65,11 +70,12 @@ def retrieve(query: str, source_filter: Optional[str] = None) -> List[RetrievedC
 
     results = [_to_retrieved_chunk(row) for row in rows]
     logger.info(
-        "Hybrid retrieval returned {} results for query='{}' semantic='{}' keyword='{}'",
+        "Hybrid retrieval returned {} results for query='{}' semantic='{}' keyword='{}' entities={}",
         len(results),
         query,
         semantic_query,
         keyword_query,
+        query_bundle.entities,
     )
     return results
 
