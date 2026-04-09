@@ -73,14 +73,22 @@ async def ask(payload: QueryInput):
         return answer
     except Exception as e:
         logger.error(f"❌ /ask error: {e}")
-        # Return a gracefully handled answer instead of crashing the UI with a 500.
-        return GeneratedAnswer(
-            query=payload.query,
-            answer=(
-                f"⚠️ **System Error**: {str(e)}\n\n"
+        detail = str(e)
+        if "quota" in detail.lower() or "rate limit" in detail.lower() or "resource_exhausted" in detail.lower():
+            detail = (
+                f"⚠️ **Gemini quota error**: {detail}\n\n"
+                "Your Gemini API key has hit a quota or rate limit. "
+                "Try again later, check your plan, or use a different API key."
+            )
+        else:
+            detail = (
+                f"⚠️ **System Error**: {detail}\n\n"
                 "The AI pipeline could not complete this request. Check your "
                 "Gemini API key, configured model availability, and data index status."
-            ),
+            )
+        return GeneratedAnswer(
+            query=payload.query,
+            answer=detail,
             is_grounded=False,
             latency_ms=0.0
         )

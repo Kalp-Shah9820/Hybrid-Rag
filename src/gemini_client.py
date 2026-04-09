@@ -10,10 +10,12 @@ Centralized Google GenAI integration for production use.
 from __future__ import annotations
 
 import os
+import time
 from functools import lru_cache
 from typing import List, Optional
 
 from google import genai
+from google.genai import errors as genai_errors
 from google.genai import types
 from loguru import logger
 
@@ -173,6 +175,81 @@ def resolve_generation_model(preferred_model: Optional[str] = None) -> str:
     )
 
 
+def _is_rate_limit_error(exc: Exception) -> bool:
+    """Detect Gemini quota / rate-limit failures."""
+    if isinstance(exc, genai_errors.APIError):
+        code = getattr(exc, "code", None)
+        status = getattr(exc, "status", "") or ""
+        message = str(exc).upper()
+        if code == 429:
+            return True
+        if "RESOURCE_EXHAUSTED" in status.upper() or "RESOURCE_EXHAUSTED" in message:
+            return True
+        if "QUOTA" in message or "RATE_LIMIT" in message:
+            return True
+    return False
+
+
+def _try_fallback_model(
+    prompt: str,
+    system_instruction: str,
+    current_model: str,
+    *,
+    temperature: Optional[float],
+    max_output_tokens: Optional[int],
+    thinking_budget: Optional[int],
+) -> Optional[str]:
+    """Try alternate configured Gemini models when the first model is rate-limited."""
+    for fallback_model in get_candidate_models():
+        if fallback_model == current_model:
+            continue
+
+        logger.warning(
+            "Gemini model '%s' hit a quota/rate-limit error. "
+            "Retrying with fallback model '%s'.",
+            current_model,
+            fallback_model,
+        )
+        try:
+            response = get_gemini_client().models.generate_content(
+                model=fallback_model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    temperature=(
+                        settings.generator.temperature if temperature is None else temperature
+                    ),
+                    max_output_tokens=(
+                        settings.generator.max_tokens
+                        if max_output_tokens is None
+                        else max_output_tokens
+                    ),
+                    thinking_config=types.ThinkingConfig(
+                        thinking_budget=(
+                            settings.generator.thinking_budget
+                            if thinking_budget is None
+                            else thinking_budget
+                        )
+                    ),
+                ),
+            )
+            text = _extract_response_text(response)
+            if text:
+                return text
+            raise RuntimeError(_describe_empty_response(response))
+        except Exception as exc:
+            if _is_rate_limit_error(exc):
+                logger.warning(
+                    "Fallback model '%s' also hit a rate limit. Trying next fallback.",
+                    fallback_model,
+                )
+                time.sleep(1)
+                continue
+            raise
+
+    return None
+
+
 def validate_gemini_configuration() -> str:
     """Validate Gemini connectivity and return the selected generation model."""
     model = resolve_generation_model()
@@ -190,28 +267,49 @@ def generate_text(
     thinking_budget: Optional[int] = None,
 ) -> str:
     """Generate text through the centralized Gemini client."""
-    response = get_gemini_client().models.generate_content(
-        model=resolve_generation_model(preferred_model),
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            system_instruction=system_instruction,
-            temperature=(
-                settings.generator.temperature if temperature is None else temperature
+    model = resolve_generation_model(preferred_model)
+
+    try:
+        response = get_gemini_client().models.generate_content(
+            model=model,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                temperature=(
+                    settings.generator.temperature if temperature is None else temperature
+                ),
+                max_output_tokens=(
+                    settings.generator.max_tokens
+                    if max_output_tokens is None
+                    else max_output_tokens
+                ),
+                thinking_config=types.ThinkingConfig(
+                    thinking_budget=(
+                        settings.generator.thinking_budget
+                        if thinking_budget is None
+                        else thinking_budget
+                    )
+                ),
             ),
-            max_output_tokens=(
-                settings.generator.max_tokens
-                if max_output_tokens is None
-                else max_output_tokens
-            ),
-            thinking_config=types.ThinkingConfig(
-                thinking_budget=(
-                    settings.generator.thinking_budget
-                    if thinking_budget is None
-                    else thinking_budget
-                )
-            ),
-        ),
-    )
+        )
+    except Exception as exc:
+        if _is_rate_limit_error(exc):
+            fallback_text = _try_fallback_model(
+                prompt,
+                system_instruction=system_instruction,
+                current_model=model,
+                temperature=temperature,
+                max_output_tokens=max_output_tokens,
+                thinking_budget=thinking_budget,
+            )
+            if fallback_text is not None:
+                return fallback_text
+
+            raise RuntimeError(
+                "Gemini quota or rate limit exceeded on all configured models. "
+                "Check your Gemini plan, billing, or use a different API key."
+            ) from exc
+        raise
 
     text = _extract_response_text(response)
     if not text:
